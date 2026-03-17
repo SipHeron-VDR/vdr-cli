@@ -10,6 +10,7 @@ const human_1 = require("../output/human");
 const json_1 = require("../output/json");
 const quiet_1 = require("../output/quiet");
 const config_1 = require("../config");
+const web3_js_1 = require("@solana/web3.js");
 exports.verifyCommand = new commander_1.Command('verify')
     .description('Verify a document\'s authenticity against its blockchain anchor')
     .argument('<file-or-hash>', 'Document file path or SHA-256 hash')
@@ -37,6 +38,25 @@ exports.verifyCommand = new commander_1.Command('verify')
             if (format === 'human')
                 spinner.start();
             result = await client.verify({ file });
+        }
+        // If we have txSignature but block/timestamp is missing, fetch from rpc
+        if (result.authentic && result.anchor?.transactionSignature && (!result.anchor.blockNumber || !result.anchor.timestamp)) {
+            try {
+                const rpc = network === 'mainnet'
+                    ? 'https://api.mainnet-beta.solana.com'
+                    : 'https://api.devnet.solana.com';
+                const conn = new web3_js_1.Connection(rpc, 'confirmed');
+                const tx = await conn.getTransaction(result.anchor.transactionSignature, { maxSupportedTransactionVersion: 0 });
+                if (tx) {
+                    result.anchor.blockNumber = tx.slot;
+                    if (tx.blockTime) {
+                        result.anchor.timestamp = new Date(tx.blockTime * 1000).toISOString();
+                    }
+                }
+            }
+            catch {
+                // keep api state
+            }
         }
         if (format === 'human')
             spinner.stop();

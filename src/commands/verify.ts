@@ -7,6 +7,7 @@ import { human } from '../output/human'
 import { json } from '../output/json'
 import { quiet } from '../output/quiet'
 import { config } from '../config'
+import { Connection } from '@solana/web3.js'
 
 export const verifyCommand = new Command('verify')
   .description('Verify a document\'s authenticity against its blockchain anchor')
@@ -36,6 +37,25 @@ export const verifyCommand = new Command('verify')
         const file = readFileAsBuffer(fileOrHash)
         if (format === 'human') spinner.start()
         result = await client.verify({ file })
+      }
+
+      // If we have txSignature but block/timestamp is missing, fetch from rpc
+      if (result.authentic && result.anchor?.transactionSignature && (!result.anchor.blockNumber || !result.anchor.timestamp)) {
+        try {
+          const rpc = network === 'mainnet' 
+            ? 'https://api.mainnet-beta.solana.com' 
+            : 'https://api.devnet.solana.com'
+          const conn = new Connection(rpc, 'confirmed')
+          const tx = await conn.getTransaction(result.anchor.transactionSignature, { maxSupportedTransactionVersion: 0 })
+          if (tx) {
+            result.anchor.blockNumber = tx.slot
+            if (tx.blockTime) {
+              result.anchor.timestamp = new Date(tx.blockTime * 1000).toISOString()
+            }
+          }
+        } catch {
+          // keep api state
+        }
       }
 
       if (format === 'human') spinner.stop()

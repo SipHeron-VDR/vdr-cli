@@ -38,7 +38,7 @@ exports.human = {
         exports.human.label('Anchored', anchor.timestamp);
         exports.human.label('Block', anchor.blockNumber.toLocaleString());
         exports.human.label('Transaction', anchor.transactionSignature);
-        exports.human.label('Explorer', `https://solscan.io/tx/${anchor.transactionSignature}` +
+        exports.human.label('Explorer', `https://explorer.solana.com/tx/${anchor.transactionSignature}` +
             (anchor.network === 'devnet' ? '?cluster=devnet' : ''));
         console.log();
     },

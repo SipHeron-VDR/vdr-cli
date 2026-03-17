@@ -11,6 +11,7 @@ const errors_1 = require("../utils/errors");
 const human_1 = require("../output/human");
 const json_1 = require("../output/json");
 const config_1 = require("../config");
+const web3_js_1 = require("@solana/web3.js");
 const chalk_1 = __importDefault(require("chalk"));
 exports.statusCommand = new commander_1.Command('status')
     .description('Check the blockchain confirmation status of an anchor')
@@ -27,6 +28,25 @@ exports.statusCommand = new commander_1.Command('status')
         if (options.format === 'human')
             spinner.start();
         const status = await client.getStatus(hashOrId);
+        // Fallback: If api returns txSignature but block 0 or no timestamp
+        if (status.status === 'confirmed' && status.transactionSignature && (!status.blockNumber || !status.timestamp)) {
+            try {
+                const rpc = options.network === 'mainnet'
+                    ? 'https://api.mainnet-beta.solana.com'
+                    : 'https://api.devnet.solana.com';
+                const conn = new web3_js_1.Connection(rpc, 'confirmed');
+                const tx = await conn.getTransaction(status.transactionSignature, { maxSupportedTransactionVersion: 0 });
+                if (tx) {
+                    status.blockNumber = tx.slot;
+                    if (tx.blockTime) {
+                        status.timestamp = new Date(tx.blockTime * 1000).toISOString();
+                    }
+                }
+            }
+            catch {
+                // ignore RPC errors, keep the API state
+            }
+        }
         spinner.stop();
         if (options.format === 'json') {
             json_1.json.print(status);

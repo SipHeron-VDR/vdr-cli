@@ -6,6 +6,7 @@ import { handleError } from '../utils/errors'
 import { human } from '../output/human'
 import { json } from '../output/json'
 import { config } from '../config'
+import { Connection } from '@solana/web3.js'
 import chalk from 'chalk'
 
 export const statusCommand = new Command('status')
@@ -25,6 +26,25 @@ export const statusCommand = new Command('status')
       if (options.format === 'human') spinner.start()
 
       const status = await client.getStatus(hashOrId)
+
+      // Fallback: If api returns txSignature but block 0 or no timestamp
+      if (status.status === 'confirmed' && status.transactionSignature && (!status.blockNumber || !status.timestamp)) {
+        try {
+          const rpc = options.network === 'mainnet' 
+            ? 'https://api.mainnet-beta.solana.com' 
+            : 'https://api.devnet.solana.com'
+          const conn = new Connection(rpc, 'confirmed')
+          const tx = await conn.getTransaction(status.transactionSignature, { maxSupportedTransactionVersion: 0 })
+          if (tx) {
+            status.blockNumber = tx.slot
+            if (tx.blockTime) {
+              status.timestamp = new Date(tx.blockTime * 1000).toISOString()
+            }
+          }
+        } catch {
+          // ignore RPC errors, keep the API state
+        }
+      }
 
       spinner.stop()
 

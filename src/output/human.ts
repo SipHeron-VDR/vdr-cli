@@ -41,7 +41,7 @@ export const human = {
     human.label('Transaction', anchor.transactionSignature)
     human.label(
       'Explorer',
-      `https://solscan.io/tx/${anchor.transactionSignature}` +
+      `https://explorer.solana.com/tx/${anchor.transactionSignature}` +
       (anchor.network === 'devnet' ? '?cluster=devnet' : '')
     )
     console.log()
