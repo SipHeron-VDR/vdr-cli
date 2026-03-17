@@ -1,6 +1,6 @@
 {
   "name": "@sipheron/vdr-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Anchor and verify documents on Solana from your terminal. No account required.",
   "bin": {
     "sipheron": "dist/index.js"
