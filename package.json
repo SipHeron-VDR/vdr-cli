@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "description": "Anchor and verify documents on Solana from your terminal. No account required.",
   "bin": {
-    "sipheron": "./dist/index.js"
+    "sipheron": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/index.ts",
+    "build": "tsc && chmod +x dist/index.js",
+    "dev": "ts-node src/index.js",
     "test": "jest",
     "prepublishOnly": "npm run build"
   },
