@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { anchorToSolana, hashDocument } from '@sipheron/vdr-core'
+import { anchorToSolana, hashDocument, hashFileWithProgress } from '@sipheron/vdr-core'
 import { readFileAsBuffer } from '../utils/file'
 import { createSpinner } from '../utils/spinner'
 import { handleError } from '../utils/errors'
@@ -37,7 +37,6 @@ export const anchorCommand = new Command('anchor')
     const spinner = createSpinner('Anchoring document to Solana...')
 
     try {
-      const file = readFileAsBuffer(filePath)
       const keypair = Keypair.fromSecretKey(
         Uint8Array.from(JSON.parse(readFileSync(keypairPath, 'utf-8')))
       )
@@ -46,9 +45,33 @@ export const anchorCommand = new Command('anchor')
         spinner.start()
       }
 
+      const { statSync } = await import('fs')
+      const stats = statSync(filePath)
+      const fileSizeMB = stats.size / (1024 * 1024)
+
+      let hash: string
+
+      if (fileSizeMB > 50) {
+        if (format === 'human') {
+          spinner.text = `Hashing large file (${fileSizeMB.toFixed(0)}MB)...`
+        }
+        hash = await hashFileWithProgress(filePath, (processed: number, total: number) => {
+          if (format === 'human') {
+            const pct = Math.round((processed / total) * 100)
+            spinner.text = `Hashing: ${pct}% (${(processed/1024/1024).toFixed(0)}MB / ${(total/1024/1024).toFixed(0)}MB)`
+          }
+        })
+        if (format === 'human') {
+          spinner.text = 'Broadcasting to Solana...'
+        }
+      } else {
+        const file = readFileAsBuffer(filePath)
+        hash = await hashDocument(file)
+      }
+
       // ── Direct on-chain anchor — zero SipHeron API dependency ───────────────
       const onchainResult = await anchorToSolana({
-        buffer: file,
+        hash,
         keypair,
         network,
         metadata: options.name || filePath.split('/').pop() || filePath,
@@ -56,9 +79,6 @@ export const anchorCommand = new Command('anchor')
       })
 
       if (format === 'human') spinner.stop()
-
-      // Compute the hash separately for display (anchorToSolana already hashed it internally)
-      const hash = onchainResult.hash
 
       const result = {
         id:                   onchainResult.pda,
