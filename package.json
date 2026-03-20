@@ -1,6 +1,6 @@
 {
   "name": "@sipheron/vdr-cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Anchor and verify documents on Solana from your terminal. No account required.",
   "bin": {
     "sipheron": "dist/index.js"
@@ -11,12 +11,12 @@
   ],
   "scripts": {
     "build": "tsc && chmod +x dist/index.js",
-    "dev": "ts-node src/index.js",
-    "test": "jest",
+    "dev": "ts-node src/index.ts",
+    "test": "jest --passWithNoTests",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@sipheron/vdr-core": "^0.1.18",
+    "@sipheron/vdr-core": "^0.1.19",
     "@solana/web3.js": "^1.91.1",
     "axios": "^1.13.6",
     "chalk": "^4.1.2",
@@ -53,5 +53,10 @@
   "homepage": "https://sipheron.com",
   "publishConfig": {
     "access": "public"
+  },
+  "jest": {
+    "modulePathIgnorePatterns": [
+      "<rootDir>/sipheron-vdr-examples/"
+    ]
   }
 }
