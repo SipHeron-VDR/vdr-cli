@@ -11,8 +11,10 @@ export const anchorBatchCommand = new Command('anchor:batch')
   .argument('<directory>', 'Path to the directory containing files to anchor')
   .option('-c, --concurrency <number>', 'Number of simultaneous anchors', '5')
   .option('--network <network>', 'Network: devnet, mainnet', 'devnet')
+  .option('-a, --algorithm <algo>', 'Hashing algorithm: sha256, sha512, blake3, md5', 'sha256')
   .action(async (directory: string, options) => {
     const network = options.network as 'devnet' | 'mainnet'
+    const algorithm = options.algorithm as any
     const concurrency = parseInt(options.concurrency, 10)
     const apiKey = config.getApiKey()
 
@@ -97,6 +99,7 @@ export const anchorBatchCommand = new Command('anchor:batch')
       const result = await sipheron.anchorBatch({
         documents: documentsToAnchor,
         concurrency,
+        hashAlgorithm: algorithm,
         onProgress: (c: number, t: number, itemResult: any) => {
           completed = c
           if (itemResult.success) successful++

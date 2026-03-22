@@ -57,10 +57,18 @@ exports.anchorCommand = new commander_1.Command('anchor')
     .option('--network <network>', 'Network: devnet, mainnet', 'devnet')
     .option('-f, --format <format>', 'Output format: human, json, quiet', 'human')
     .option('--program-id <id>', 'Custom Solana program ID (advanced: override default SipHeron contract)')
+    .option('-a, --algorithm <algo>', 'Hashing algorithm: sha256, sha512, blake3, md5', 'sha256')
     .action(async (filePath, options) => {
     const format = options.format;
     const network = options.network;
+    const algorithm = options.algorithm;
     const keypairPath = options.keypair || paths_1.SOLANA_KEY_PATH;
+    // Direct on-chain mode check
+    if (algorithm !== 'sha256') {
+        console.error(chalk_1.default.red(`\n✗ On-chain contract only supports SHA-256 for fingerprints.\n`) +
+            chalk_1.default.gray(`  For ${algorithm.toUpperCase()}, use the SipHeron platform via API.\n`));
+        process.exit(1);
+    }
     // ── Resolve Solana keypair ────────────────────────────────────────────────
     if (!(0, fs_1.existsSync)(keypairPath)) {
         console.error(chalk_1.default.red(`\n✗ No Solana keypair found at: ${keypairPath}\n`) +

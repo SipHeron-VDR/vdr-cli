@@ -1,6 +1,6 @@
 import { Command } from 'commander'
-import { verifyOnChain, SipHeron, hashDocument } from '@sipheron/vdr-core'
-import { readFileAsBuffer, isValidHash } from '../utils/file'
+import { verifyOnChain, SipHeron, hashDocument, isValidHash } from '@sipheron/vdr-core'
+import { readFileAsBuffer } from '../utils/file'
 import { createSpinner } from '../utils/spinner'
 import { handleError } from '../utils/errors'
 import { human } from '../output/human'
@@ -22,11 +22,22 @@ export const verifyCommand = new Command('verify')
   )
   .option('--program-id <id>', 'Custom Solana program ID (advanced)')
   .option('--no-cache', 'Force fresh verification from network, bypassing local cache')
+  .option('-a, --algorithm <algo>', 'Hashing algorithm: sha256, sha512, blake3, md5', 'sha256')
   .action(async (fileOrHash: string, options) => {
-    const format     = options.format
-    const network    = options.network as 'devnet' | 'mainnet'
-    const ownerArg   = options.owner as string | undefined
+    const format      = options.format
+    const network     = options.network as 'devnet' | 'mainnet'
+    const algorithm   = options.algorithm as any
+    const ownerArg    = options.owner as string | undefined
     const bypassCache = options.cache === false
+
+    // Direct mode constraint
+    if (ownerArg && algorithm !== 'sha256') {
+      console.error(
+        chalk.red(`\n✗ On-chain verification only supports SHA-256.\n`) +
+        chalk.gray(`  For ${algorithm.toUpperCase()}, use standard verification (via API).\n`)
+      )
+      process.exit(1)
+    }
 
     const spinner = createSpinner('Verifying document...')
     if (format === 'human') spinner.start()
@@ -36,11 +47,11 @@ export const verifyCommand = new Command('verify')
 
       // ── Resolve hash ────────────────────────────────────────────────────────
       let hash: string
-      if (isValidHash(fileOrHash)) {
+      if (isValidHash(fileOrHash, algorithm)) {
         hash = fileOrHash.toLowerCase()
       } else {
         const file = readFileAsBuffer(fileOrHash)
-        hash = await hashDocument(file)
+        hash = await hashDocument(file, { algorithm })
       }
 
       // ── Mode A: true on-chain (zero API dependency) ─────────────────────────
