@@ -8,6 +8,7 @@ import { listCommand } from './commands/list'
 import { certificateCommand } from './commands/certificate'
 import { loginCommand } from './commands/login'
 import { logoutCommand } from './commands/logout'
+import { anchorBatchCommand } from './commands/anchorBatch'
 import { whoamiCommand } from './commands/whoami'
 
 const program = new Command()
@@ -18,6 +19,7 @@ program
   .version('0.1.0')
 
 program.addCommand(anchorCommand)
+program.addCommand(anchorBatchCommand)
 program.addCommand(verifyCommand)
 program.addCommand(statusCommand)
 program.addCommand(listCommand)
