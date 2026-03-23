@@ -26,7 +26,19 @@ exports.certificateCommand = new commander_1.Command('certificate')
         spinner.start();
         const network = config_1.config.getNetwork();
         const baseUrl = process.env.SIPHERON_API_URL || 'https://api.sipheron.com';
-        const response = await axios_1.default.get(`${baseUrl}/api/hashes/${id}/certificate`, {
+        let targetHash = id;
+        const isId = id.startsWith('anc_') || id.includes('-');
+        if (isId) {
+            // Fallback for older backend deployments that strictly require hashes
+            const { SipHeron } = require('@sipheron/vdr-core');
+            const sipheron = new SipHeron({ apiKey: config_1.config.getApiKey(), network, baseUrl });
+            const chain = await sipheron.anchors.getVersionChain(id).catch(() => []);
+            const match = chain.find((c) => c.id === id) || chain[0];
+            if (match && match.hash) {
+                targetHash = match.hash;
+            }
+        }
+        const response = await axios_1.default.get(`${baseUrl}/api/hashes/${targetHash}/certificate`, {
             headers: { 'x-api-key': config_1.config.getApiKey() },
             responseType: 'arraybuffer'
         });
