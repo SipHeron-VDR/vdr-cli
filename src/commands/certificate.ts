@@ -25,10 +25,10 @@ export const certificateCommand = new Command('certificate')
       spinner.start()
       
       const network = config.getNetwork() as 'devnet' | 'mainnet'
-      const baseUrl = 'https://api.sipheron.com'
+      const baseUrl = process.env.SIPHERON_API_URL || 'https://api.sipheron.com'
       
       const response = await axios.get(`${baseUrl}/api/hashes/${id}/certificate`, {
-        headers: { 'Authorization': `Bearer ${config.getApiKey()}` },
+        headers: { 'x-api-key': config.getApiKey() },
         responseType: 'arraybuffer'
       })
       

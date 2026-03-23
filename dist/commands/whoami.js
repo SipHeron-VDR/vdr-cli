@@ -23,21 +23,32 @@ exports.whoamiCommand = new commander_1.Command('whoami')
     }
     try {
         const network = config_1.config.getNetwork();
-        const baseUrl = 'https://api.sipheron.com';
-        const response = await axios_1.default.get(`${baseUrl}/api/keys/me`, {
-            headers: { 'Authorization': `Bearer ${config_1.config.getApiKey()}` }
+        const baseUrl = process.env.SIPHERON_API_URL || 'https://api.sipheron.com';
+        const response = await axios_1.default.get(`${baseUrl}/auth/verify-key`, {
+            headers: { 'x-api-key': config_1.config.getApiKey() }
         });
+        const usageResponse = await axios_1.default.get(`${baseUrl}/api/usage`, {
+            headers: { 'x-api-key': config_1.config.getApiKey() }
+        }).catch(() => null);
         const account = response.data;
+        const org = account.organization || {};
+        const user = account.user || {};
+        const usage = usageResponse ? usageResponse.data : null;
         if (options.format === 'json') {
-            json_1.json.print(account);
+            json_1.json.print({ ...account, usage });
             return;
         }
         console.log();
-        human_1.human.label('Organization', account.organizationName);
-        human_1.human.label('Email', account.email);
-        human_1.human.label('Plan', account.plan);
-        human_1.human.label('Anchors used', `${(account.anchorsUsed || 0).toLocaleString()} / ` +
-            `${(account.anchorsLimit || 100).toLocaleString()} this month`);
+        human_1.human.label('Organization', org.name || 'User');
+        human_1.human.label('Email', user.email || 'Unknown');
+        human_1.human.label('Plan', org.plan || 'free');
+        if (usage && usage.quota) {
+            human_1.human.label('Anchors used', `${(usage.quota.used || 0).toLocaleString()} / ` +
+                `${(usage.quota.limit || 100).toLocaleString()} this month`);
+        }
+        else {
+            human_1.human.label('Anchors used', 'N/A');
+        }
         human_1.human.label('Network', `Solana ${config_1.config.getNetwork()}`);
         console.log();
     }

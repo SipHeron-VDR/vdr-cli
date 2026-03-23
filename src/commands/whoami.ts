@@ -21,28 +21,40 @@ export const whoamiCommand = new Command('whoami')
 
     try {
       const network = config.getNetwork() as 'devnet' | 'mainnet'
-      const baseUrl = 'https://api.sipheron.com'
+      const baseUrl = process.env.SIPHERON_API_URL || 'https://api.sipheron.com'
       
-      const response = await axios.get(`${baseUrl}/api/keys/me`, {
-        headers: { 'Authorization': `Bearer ${config.getApiKey()}` }
+      const response = await axios.get(`${baseUrl}/auth/verify-key`, {
+        headers: { 'x-api-key': config.getApiKey() }
       })
 
+      const usageResponse = await axios.get(`${baseUrl}/api/usage`, {
+        headers: { 'x-api-key': config.getApiKey() }
+      }).catch(() => null)
+
       const account = response.data
+      const org = account.organization || {}
+      const user = account.user || {}
+      const usage = usageResponse ? usageResponse.data : null
 
       if (options.format === 'json') {
-        json.print(account)
+        json.print({ ...account, usage })
         return
       }
 
       console.log()
-      human.label('Organization', account.organizationName)
-      human.label('Email', account.email)
-      human.label('Plan', account.plan)
-      human.label(
-        'Anchors used',
-        `${(account.anchorsUsed || 0).toLocaleString()} / ` +
-        `${(account.anchorsLimit || 100).toLocaleString()} this month`
-      )
+      human.label('Organization', org.name || 'User')
+      human.label('Email', user.email || 'Unknown')
+      human.label('Plan', org.plan || 'free')
+      
+      if (usage && usage.quota) {
+        human.label(
+          'Anchors used',
+          `${(usage.quota.used || 0).toLocaleString()} / ` +
+          `${(usage.quota.limit || 100).toLocaleString()} this month`
+        )
+      } else {
+        human.label('Anchors used', 'N/A')
+      }
       human.label('Network', `Solana ${config.getNetwork()}`)
       console.log()
 

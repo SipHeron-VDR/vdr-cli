@@ -25,9 +25,9 @@ exports.certificateCommand = new commander_1.Command('certificate')
     try {
         spinner.start();
         const network = config_1.config.getNetwork();
-        const baseUrl = 'https://api.sipheron.com';
+        const baseUrl = process.env.SIPHERON_API_URL || 'https://api.sipheron.com';
         const response = await axios_1.default.get(`${baseUrl}/api/hashes/${id}/certificate`, {
-            headers: { 'Authorization': `Bearer ${config_1.config.getApiKey()}` },
+            headers: { 'x-api-key': config_1.config.getApiKey() },
             responseType: 'arraybuffer'
         });
         const pdf = response.data;
