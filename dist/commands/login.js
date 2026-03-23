@@ -28,15 +28,16 @@ exports.loginCommand = new commander_1.Command('login')
         }
         try {
             const network = config_1.config.getNetwork();
-            const baseUrl = 'https://api.sipheron.com';
+            const baseUrl = process.env.SIPHERON_API_URL || 'https://api.sipheron.com';
             // Validate the key by making a test request directly
-            const response = await axios_1.default.get(`${baseUrl}/api/keys/me`, {
-                headers: { 'Authorization': `Bearer ${apiKey.trim()}` }
+            const response = await axios_1.default.get(`${baseUrl}/auth/verify-key`, {
+                headers: { 'x-api-key': apiKey.trim() }
             });
             const account = response.data;
+            const orgName = (account.organization && account.organization.name) || (account.user && account.user.email) || 'User';
             config_1.config.setApiKey(apiKey.trim());
             console.log();
-            console.log(chalk_1.default.green(`✓ Authenticated as ${account.organizationName || 'User'}`));
+            console.log(chalk_1.default.green(`✓ Authenticated as ${orgName}`));
             console.log(chalk_1.default.gray('API key stored securely.'));
             console.log();
         }
