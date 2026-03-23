@@ -1,6 +1,6 @@
 {
   "name": "@sipheron/vdr-cli",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Anchor and verify documents on Solana from your terminal. No account required.",
   "bin": {
     "sipheron": "dist/index.js"
@@ -16,7 +16,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@sipheron/vdr-core": "^0.1.19",
+    "@sipheron/vdr-core": "^0.1.21",
     "@solana/web3.js": "^1.91.1",
     "axios": "^1.13.6",
     "chalk": "^4.1.2",

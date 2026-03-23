@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SipHeron VDR Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <nav class="navbar">
+    <div class="logo">
+      <div class="logo-mark">S</div>
+      <span>SipHeron Studio</span>
+    </div>
+    <div class="nav-links">
+      <a href="#" class="active">Core API Demo</a>
+      <a href="https://github.com/SipHeron-VDR" target="_blank">View GitHub</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <header class="hero">
+      <h1>Direct On-Chain Verification Engine</h1>
+      <p>Powered by the totally open-source <code>@sipheron/vdr-core</code>. No SaaS API keys required.</p>
+    </header>
+
+    <div class="app-grid">
+      <!-- Upload Card -->
+      <section class="glass-card upload-section">
+        <div class="card-header">
+          <h2>Select Document</h2>
+          <span class="badge">Local Hash</span>
+        </div>
+        
+        <div class="dropzone" id="dropzone">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <p>Drag & drop any file here, or <span class="highlight">browse</span></p>
+          <input type="file" id="fileInput" hidden>
+        </div>
+
+        <div id="fileInfo" class="hidden file-info">
+          <div class="file-icon">📄</div>
+          <div class="file-details">
+            <h4 id="fileName">contract.pdf</h4>
+            <span id="fileSize">1.2 MB</span>
+          </div>
+          <button id="clearFile" class="icon-btn">✕</button>
+        </div>
+      </section>
+
+      <!-- Action & Results Card -->
+      <section class="glass-card results-section">
+        <div class="card-header">
+          <h2>Cryptographic Engine</h2>
+          <div class="loader hidden" id="engineLoader"></div>
+        </div>
+
+        <div class="actions">
+          <button id="btnAnalyze" class="btn btn-primary" disabled>
+            <span>Generate SHA-256</span>
+          </button>
+          <div class="action-row">
+            <button id="btnVerify" class="btn btn-secondary" disabled>Verify On-Chain</button>
+            <button id="btnAnchor" class="btn btn-outline" disabled>Simulate Anchor</button>
+          </div>
+        </div>
+
+        <div id="resultsView" class="results-view hidden">
+          <div class="result-group">
+            <label>Deterministic SHA-256 Hash</label>
+            <div class="code-box" id="resHash">a3f4...</div>
+          </div>
+          <div class="result-group">
+            <label>Solana PDA Address (Devnet)</label>
+            <div class="code-box" id="resPda">FzN...</div>
+          </div>
+          
+          <div id="verifyOutcome" class="outcome-box hidden">
+             <!-- Status injected here -->
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
