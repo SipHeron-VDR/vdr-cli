@@ -5,7 +5,7 @@
 
   <p>
     <a href="https://www.npmjs.com/package/@sipheron/vdr-cli"><img src="https://img.shields.io/npm/v/@sipheron/vdr-cli.svg?color=blue" alt="NPM Version" /></a>
-    <a href="https://github.com/leaderofARS/vdr-cli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License" /></a>
+    <a href="https://github.com/leaderofARS/vdr-cli/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
     <a href="https://docs.sipheron.com"><img src="https://img.shields.io/badge/docs-sipheron.com-blueviolet" alt="Documentation" /></a>
   </p>
 </div>
@@ -106,4 +106,4 @@ We greatly welcome community engagement. Please read our carefully laid out guid
 - [Code of Conduct](./CODE_OF_CONDUCT.md)
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
