@@ -47,6 +47,7 @@ const json_1 = require("../output/json");
 const quiet_1 = require("../output/quiet");
 const fs_1 = require("fs");
 const paths_1 = require("../config/paths");
+const config_1 = require("../config");
 const web3_js_1 = require("@solana/web3.js");
 const chalk_1 = __importDefault(require("chalk"));
 exports.anchorCommand = new commander_1.Command('anchor')
@@ -57,20 +58,34 @@ exports.anchorCommand = new commander_1.Command('anchor')
     .option('--network <network>', 'Network: devnet, mainnet', 'devnet')
     .option('-f, --format <format>', 'Output format: human, json, quiet', 'human')
     .option('--program-id <id>', 'Custom Solana program ID (advanced: override default SipHeron contract)')
+    .option('-p, --previous <anchorId>', 'Link this anchor to a previous version')
+    .option('-a, --algorithm <algo>', 'Hashing algorithm: sha256, sha512, blake3, md5', 'sha256')
     .action(async (filePath, options) => {
     const format = options.format;
     const network = options.network;
+    const algorithm = options.algorithm;
     const keypairPath = options.keypair || paths_1.SOLANA_KEY_PATH;
-    // ── Resolve Solana keypair ────────────────────────────────────────────────
-    if (!(0, fs_1.existsSync)(keypairPath)) {
+    const useApi = config_1.config.isAuthenticated() && !options.keypair;
+    // Direct on-chain mode check
+    if (!useApi && algorithm !== 'sha256') {
+        console.error(chalk_1.default.red(`\n✗ On-chain contract only supports SHA-256 for fingerprints.\n`) +
+            chalk_1.default.gray(`  For ${algorithm.toUpperCase()}, use the SipHeron platform via API.\n`));
+        process.exit(1);
+    }
+    // ── Resolve Solana keypair (if not using API) ─────────────────────────────
+    if (!useApi && !(0, fs_1.existsSync)(keypairPath)) {
         console.error(chalk_1.default.red(`\n✗ No Solana keypair found at: ${keypairPath}\n`) +
             chalk_1.default.gray('  Generate one with:  solana-keygen new\n') +
-            chalk_1.default.gray('  Or specify one with: --keypair <path>\n'));
+            chalk_1.default.gray('  Or specify one with: --keypair <path>\n') +
+            chalk_1.default.yellow('  Want free transactions? Run: sipheron login\n'));
         process.exit(3);
     }
-    const spinner = (0, spinner_1.createSpinner)('Anchoring document to Solana...');
+    const spinner = (0, spinner_1.createSpinner)('Anchoring document...');
     try {
-        const keypair = web3_js_1.Keypair.fromSecretKey(Uint8Array.from(JSON.parse((0, fs_1.readFileSync)(keypairPath, 'utf-8'))));
+        let keypair;
+        if (!useApi) {
+            keypair = web3_js_1.Keypair.fromSecretKey(Uint8Array.from(JSON.parse((0, fs_1.readFileSync)(keypairPath, 'utf-8'))));
+        }
         if (format === 'human') {
             spinner.start();
         }
@@ -89,17 +104,50 @@ exports.anchorCommand = new commander_1.Command('anchor')
                 }
             });
             if (format === 'human') {
-                spinner.text = 'Broadcasting to Solana...';
+                spinner.text = useApi ? 'Submitting to SipHeron API...' : 'Broadcasting to Solana...';
             }
         }
         else {
             const file = (0, file_1.readFileAsBuffer)(filePath);
-            hash = await (0, vdr_core_1.hashDocument)(file);
+            hash = await (0, vdr_core_1.hashDocument)(file, { algorithm });
+        }
+        if (useApi) {
+            // ── SipHeron API Anchor ─────────────────────────────────────────────────
+            const apiKey = config_1.config.getApiKey();
+            const sipheron = new vdr_core_1.SipHeron({ apiKey, network, baseUrl: process.env.SIPHERON_API_URL });
+            const apiResult = await sipheron.anchor({
+                hash,
+                hashAlgorithm: algorithm,
+                name: options.name || filePath.split('/').pop() || filePath,
+                previousAnchorId: options.previous,
+            });
+            if (format === 'human')
+                spinner.stop();
+            if (format === 'json') {
+                json_1.json.print({ ...apiResult, mode: 'api' });
+                return;
+            }
+            if (format === 'quiet') {
+                quiet_1.quiet.anchored(apiResult.verificationUrl);
+                return;
+            }
+            console.log();
+            console.log(chalk_1.default.green.bold('✓ Anchored via SipHeron API'));
+            console.log();
+            human_1.human.label('Anchor ID', apiResult.id);
+            human_1.human.label('Hash', hash.substring(0, 32) + '...');
+            human_1.human.label('Status', chalk_1.default.yellow(apiResult.status));
+            human_1.human.label('Network', `Solana ${network}`);
+            console.log();
+            console.log(chalk_1.default.gray('Verify it online:'));
+            console.log(chalk_1.default.cyan(apiResult.verificationUrl));
+            console.log();
+            return;
         }
         // ── Direct on-chain anchor — zero SipHeron API dependency ───────────────
         const onchainResult = await (0, vdr_core_1.anchorToSolana)({
             hash,
-            keypair,
+            keypair: keypair,
             network,
             metadata: options.name || filePath.split('/').pop() || filePath,
             ...(options.programId && { programId: options.programId }),

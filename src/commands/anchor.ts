@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { anchorToSolana, hashDocument, hashFileWithProgress } from '@sipheron/vdr-core'
+import { anchorToSolana, hashDocument, hashFileWithProgress, SipHeron } from '@sipheron/vdr-core'
 import { readFileAsBuffer } from '../utils/file'
 import { createSpinner } from '../utils/spinner'
 import { handleError } from '../utils/errors'
@@ -8,6 +8,7 @@ import { json } from '../output/json'
 import { quiet } from '../output/quiet'
 import { readFileSync, existsSync } from 'fs'
 import { SOLANA_KEY_PATH } from '../config/paths'
+import { config } from '../config'
 import { Keypair } from '@solana/web3.js'
 import chalk from 'chalk'
 
@@ -19,27 +20,45 @@ export const anchorCommand = new Command('anchor')
   .option('--network <network>', 'Network: devnet, mainnet', 'devnet')
   .option('-f, --format <format>', 'Output format: human, json, quiet', 'human')
   .option('--program-id <id>', 'Custom Solana program ID (advanced: override default SipHeron contract)')
+  .option('-p, --previous <anchorId>', 'Link this anchor to a previous version')
+  .option('-a, --algorithm <algo>', 'Hashing algorithm: sha256, sha512, blake3, md5', 'sha256')
   .action(async (filePath: string, options) => {
     const format = options.format
     const network = options.network as 'devnet' | 'mainnet'
+    const algorithm = options.algorithm as any
     const keypairPath: string = options.keypair || SOLANA_KEY_PATH
 
-    // ── Resolve Solana keypair ────────────────────────────────────────────────
-    if (!existsSync(keypairPath)) {
+    const useApi = config.isAuthenticated() && !options.keypair
+
+    // Direct on-chain mode check
+    if (!useApi && algorithm !== 'sha256') {
+      console.error(
+        chalk.red(`\n✗ On-chain contract only supports SHA-256 for fingerprints.\n`) +
+        chalk.gray(`  For ${algorithm.toUpperCase()}, use the SipHeron platform via API.\n`)
+      )
+      process.exit(1)
+    }
+
+    // ── Resolve Solana keypair (if not using API) ─────────────────────────────
+    if (!useApi && !existsSync(keypairPath)) {
       console.error(
         chalk.red(`\n✗ No Solana keypair found at: ${keypairPath}\n`) +
         chalk.gray('  Generate one with:  solana-keygen new\n') +
-        chalk.gray('  Or specify one with: --keypair <path>\n')
+        chalk.gray('  Or specify one with: --keypair <path>\n') +
+        chalk.yellow('  Want free transactions? Run: sipheron login\n')
       )
       process.exit(3)
     }
 
-    const spinner = createSpinner('Anchoring document to Solana...')
+    const spinner = createSpinner('Anchoring document...')
 
     try {
-      const keypair = Keypair.fromSecretKey(
-        Uint8Array.from(JSON.parse(readFileSync(keypairPath, 'utf-8')))
-      )
+      let keypair: Keypair | undefined
+      if (!useApi) {
+        keypair = Keypair.fromSecretKey(
+          Uint8Array.from(JSON.parse(readFileSync(keypairPath, 'utf-8')))
+        )
+      }
 
       if (format === 'human') {
         spinner.start()
@@ -62,17 +81,54 @@ export const anchorCommand = new Command('anchor')
           }
         })
         if (format === 'human') {
-          spinner.text = 'Broadcasting to Solana...'
+          spinner.text = useApi ? 'Submitting to SipHeron API...' : 'Broadcasting to Solana...'
         }
       } else {
         const file = readFileAsBuffer(filePath)
-        hash = await hashDocument(file)
+        hash = await hashDocument(file, { algorithm })
+      }
+
+      if (useApi) {
+        // ── SipHeron API Anchor ─────────────────────────────────────────────────
+        const apiKey = config.getApiKey()
+        const sipheron = new SipHeron({ apiKey, network, baseUrl: process.env.SIPHERON_API_URL })
+        const apiResult = await sipheron.anchor({
+          hash,
+          hashAlgorithm: algorithm,
+          name: options.name || filePath.split('/').pop() || filePath,
+          previousAnchorId: options.previous,
+        })
+
+        if (format === 'human') spinner.stop()
+
+        if (format === 'json') {
+          json.print({ ...apiResult, mode: 'api' })
+          return
+        }
+
+        if (format === 'quiet') {
+          quiet.anchored(apiResult.verificationUrl)
+          return
+        }
+
+        console.log()
+        console.log(chalk.green.bold('✓ Anchored via SipHeron API'))
+        console.log()
+        human.label('Anchor ID',   apiResult.id)
+        human.label('Hash',        hash.substring(0, 32) + '...')
+        human.label('Status',      chalk.yellow(apiResult.status))
+        human.label('Network',     `Solana ${network}`)
+        console.log()
+        console.log(chalk.gray('Verify it online:'))
+        console.log(chalk.cyan(apiResult.verificationUrl))
+        console.log()
+        return
       }
 
       // ── Direct on-chain anchor — zero SipHeron API dependency ───────────────
       const onchainResult = await anchorToSolana({
         hash,
-        keypair,
+        keypair: keypair!,
         network,
         metadata: options.name || filePath.split('/').pop() || filePath,
         ...(options.programId && { programId: options.programId }),
@@ -119,7 +175,7 @@ export const anchorCommand = new Command('anchor')
       console.log()
       console.log(chalk.gray('Verify this document later with:'))
       console.log(chalk.cyan(
-        `  sipheron verify <file> --owner ${keypair.publicKey.toBase58()} --network ${network}`
+        `  sipheron verify <file> --owner ${keypair!.publicKey.toBase58()} --network ${network}`
       ))
       console.log()
 

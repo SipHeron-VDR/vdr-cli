@@ -10,6 +10,7 @@ import { loginCommand } from './commands/login'
 import { logoutCommand } from './commands/logout'
 import { anchorBatchCommand } from './commands/anchorBatch'
 import { whoamiCommand } from './commands/whoami'
+import { chainCommand } from './commands/chain'
 
 const program = new Command()
 
@@ -27,5 +28,6 @@ program.addCommand(certificateCommand)
 program.addCommand(loginCommand)
 program.addCommand(logoutCommand)
 program.addCommand(whoamiCommand)
+program.addCommand(chainCommand)
 
 program.parse(process.argv)

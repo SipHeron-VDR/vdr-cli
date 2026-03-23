@@ -1,133 +1,109 @@
 <div align="center">
-  <img src="./sipheron_vdap_logo.png" alt="SipHeron VDR Logo" width="300" />
+  <img src="./sipheron_vdap_logo.png" alt="SipHeron Logo" width="300" />
   <h1>SipHeron VDR CLI</h1>
-  <p><strong>Anchor and verify documents on the Solana blockchain directly from your terminal.</strong></p>
-  
+  <p><strong>The official zero-knowledge command-line interface for the SipHeron Virtual Data Room.</strong></p>
+
   <p>
-    <a href="https://www.npmjs.com/package/@sipheron/vdr-cli"><img src="https://img.shields.io/npm/v/@sipheron/vdr-cli?color=blue&style=for-the-badge" alt="NPM Version" /></a>
-    <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/@sipheron/vdr-cli?style=for-the-badge" alt="Node.js" /></a>
-    <a href="https://github.com/leaderofARS/vdr-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@sipheron/vdr-cli?style=for-the-badge" alt="License" /></a>
+    <a href="https://www.npmjs.com/package/@sipheron/vdr-cli"><img src="https://img.shields.io/npm/v/@sipheron/vdr-cli.svg?color=blue" alt="NPM Version" /></a>
+    <a href="https://github.com/leaderofARS/vdr-cli/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
+    <a href="https://docs.sipheron.com"><img src="https://img.shields.io/badge/docs-sipheron.com-blueviolet" alt="Documentation" /></a>
   </p>
 </div>
 
-<hr />
+SipHeron VDR CLI is a developer-first toolchain for permanently anchoring document fingerprints to the Solana blockchain. It allows engineering teams and compliance officers to locally hash, digitally fingerprint, and establish tamper-proof verifiable histories directly from their trusted terminal.
 
-**SipHeron VDR CLI** brings the immutable power of the Solana blockchain to your terminal. Authenticate, anchor, and mathematically verify the integrity of your documents instantly without them ever leaving your machine.
+Crucially, **your files never leave your machine**. The CLI securely hashes documents locally and only interacts with the blockchain or SipHeron APIs using cryptographic signatures (SHA-256, SHA-512, etc.).
 
----
+## 🚀 Key Features
 
-## 🚀 Try It Right Now — No Account Required
-
-You don't need a SipHeron account to verify or anchor documents on the Solana devnet. Try it immediately:
-
-```bash
-# 1. Install globally
-npm install -g @sipheron/vdr-cli
-
-# 2. Verify any document instantly
-sipheron verify ./your-document.pdf
-
-# 3. Anchor a document to Solana
-sipheron anchor ./your-document.pdf
-```
-
-*Works on devnet immediately. No signup. No API key. No blockchain knowledge required.*
-
----
+- **Zero-Knowledge Hashing:** All file digests (e.g., PDFs, ZIPs, Source Code) are computed entirely locally.
+- **Direct On-Chain Anchoring:** Optionally bypass all SaaS APIs and commit hashes directly to the Solana blockchain using your own wallet.
+- **Massive Concurrency:** Anchor up to 500 documents per batch concurrently using the optimized background processor.
+- **Version Chains:** Graphically traverse the linked lineage of document amendments over time directly in the terminal.
+- **Algorithmic Flexibility:** Out-of-the-box support for `SHA-256`, `SHA-512`, `MD5`, and `BLAKE3`.
 
 ## 📦 Installation
 
-Install globally via NPM or Yarn:
+Install the CLI globally to access the `sipheron` command from anywhere:
 
 ```bash
 npm install -g @sipheron/vdr-cli
-# or 
+# or
 yarn global add @sipheron/vdr-cli
+# or
+pnpm add -g @sipheron/vdr-cli
 ```
 
----
+## ⚡ Quick Start
 
-## 🛠️ Usage & Commands
-
-The CLI is designed to be intuitive and powerful, capable of running in zero-knowledge modes where your files are perfectly secure.
-
-### `sipheron anchor <file>`
-Anchor a document's cryptographic fingerprint to the Solana blockchain.
-```bash
-sipheron anchor ./contract.pdf
-sipheron anchor ./contract.pdf --name "Partnership Agreement" --tag "legal"
-sipheron anchor ./contract.pdf --onchain # Anchor directly using your local Solana wallet
-```
-
-### `sipheron verify <file|hash>`
-Verify a document's authenticity against its blockchain anchor. The CLI hashes your document locally and queries the blockchain.
-```bash
-sipheron verify ./contract.pdf
-sipheron verify a3f4b2c...
-```
-
-### `sipheron status <hash>`
-Check the blockchain confirmation status, block number, and timestamp of an anchor.
-```bash
-sipheron status a3f4b2c...
-```
-
----
-
-## 🔒 Advanced (Hosted Features)
-
-Unlock mainnet anchoring, dashboard analytics, and certified PDF generation by creating a free account at [sipheron.com](https://sipheron.com).
-
-### `sipheron login`
-Authenticate your session using your SipHeron API secret key.
+### 1. Authentication
+To use the sponsored transaction layers, authenticate the CLI with your SipHeron Organization:
 ```bash
 sipheron login
 ```
+*Alternatively, you can export your API key: `export SIPHERON_API_KEY="your_api_key"`*
 
-### `sipheron list`
-List all documents and records you have previously anchored.
+### 2. Anchor a Document
+Anchor a single document to the blockchain:
 ```bash
-sipheron list
-sipheron list --limit 10 --status confirmed
+sipheron anchor ./contracts/q4-agreement.pdf --name "Q4 Deal"
 ```
 
-### `sipheron certificate <id>`
-Download a beautiful, cryptographic PDF notarization certificate for any anchored document.
+### 3. Verify a Document
+Validate an existing document locally against its immutable history:
 ```bash
-sipheron certificate <anchor-id> --out ./certificate.pdf
+sipheron verify ./contracts/q4-agreement.pdf
 ```
 
-### `sipheron whoami`
-View your current authentication status and organization details.
+## 📚 Advanced Usage
 
-### `sipheron logout`
-Securely remove your local API session keys.
-
----
-
-## ⚙️ Options & Formatting
-
-All commands support flexible output formatting, making the CLI perfect for bash scripting and CI/CD pipelines.
-
-- `-f, --format <format>`: Swap output layout (`human`, `json`, `quiet`). **Quiet** mode suppresses all text and exits with `0` (authentic/success) or `1` (mismatch/error).
-- `-n, --network <network>`: Target Solana network (`devnet`, `mainnet`). Defaults to `devnet`.
-
-**Example: Automated CI Pipeline Check**
+### Batch Anchoring
+Need to register hundreds of files at once? Use the batch command to process an entire directory simultaneously:
 ```bash
-if sipheron verify release.tar.gz --format quiet; then
-  echo "Release is authentic!"
-else
-  echo "Release tampered with!"
-  exit 1
-fi
+sipheron anchor:batch ./legal-archives --concurrency 10
 ```
 
----
+### Tracing a Version Chain
+Track the evolutionary history of a document through its amendments:
+```bash
+sipheron chain anc_9xN4kLpM
+```
+*Expected Output:*
+```text
+# Version Chain for: Service Agreement
+#
+# v1  anc_3xK9mPqR  2026-01-14  Confirmed ✓  (original)
+# v2  anc_7yL3nRsT  2026-02-01  Confirmed ✓  Updated payment terms
+# v3  anc_9xN4kLpM  2026-03-10  Confirmed ✓  Renewal clause added
+#     (current)
+```
 
-## 🛡️ Security & Privacy Promise
+### Changing Environments
+Toggle between development and production environments effortlessly:
+```bash
+# Verify against Devnet
+sipheron verify ./file.txt --network devnet
 
-**The SipHeron CLI respects Absolute Privacy.** 
-At no point does your file ever leave your physical device. The CLI *only* computes the mathematical `SHA-256` digest locally using standard crypto streams. The only payload transmitted to the REST API and the Solana RPC Network is the resulting obscure 64-character hash string.
+# Anchor to Mainnet
+sipheron anchor ./file.txt --network mainnet
+```
+
+### Direct Blockchain Interactions
+You can utilize your own local Solana keypair to fund network fees and avoid the SipHeron API routing entirely.
+```bash
+sipheron anchor ./file.txt --keypair ~/.config/solana/id.json --network mainnet
+```
+
+## ⚙️ CI/CD Integration
+
+The SipHeron CLI is strongly suited for automated build and compliance pipelines (GitHub Actions, GitLab CI, etc.). For headless environments, ensure you provide the `--format json` or `--format quiet` flags to ease programmatic log passing, and authenticate securely using `env` variables.
+
+## 🤝 Contributing & Security
+
+We greatly welcome community engagement. Please read our carefully laid out guidelines before submitting pull requests:
+- [Contributing Guidelines](./CONTRIBUTING.md)
+- [Security Policy](./SECURITY.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
 
 ## 📄 License
-This project is open-source and licensed under the MIT License.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

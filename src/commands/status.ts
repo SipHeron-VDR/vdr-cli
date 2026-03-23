@@ -1,5 +1,6 @@
 import { Command } from 'commander'
-import { verifyOnChain, deriveAnchorAddress } from '@sipheron/vdr-core'
+import { verifyOnChain, deriveAnchorAddress, SipHeron } from '@sipheron/vdr-core'
+import { config } from '../config'
 import { isValidHash } from '../utils/file'
 import { createSpinner } from '../utils/spinner'
 import { handleError } from '../utils/errors'
@@ -9,25 +10,70 @@ import { PublicKey, Connection } from '@solana/web3.js'
 import chalk from 'chalk'
 
 export const statusCommand = new Command('status')
-  .description('Check the on-chain status of an anchored document hash')
-  .argument('<hash>', 'SHA-256 hash of the document (64 hex chars)')
-  .option('--owner <publicKey>', 'Solana public key of the document owner (required for on-chain lookup)')
+  .description('Check the on-chain or API status of an anchored document')
+  .argument('<identifier>', 'SHA-256 hash or Anchor ID')
+  .option('--owner <publicKey>', 'Solana public key (forces direct zero-API on-chain lookup)')
   .option('-f, --format <format>', 'Output format: human, json', 'human')
   .option('--network <network>', 'Network: devnet, mainnet', 'devnet')
   .option('--program-id <id>', 'Custom Solana program ID (advanced)')
-  .action(async (hash: string, options) => {
+  .action(async (identifier: string, options) => {
     const network = options.network as 'devnet' | 'mainnet'
 
-    if (!isValidHash(hash)) {
-      console.error(chalk.red('\n✗ Invalid hash. Must be a 64-character hex SHA-256 string.\n'))
+    const isId = identifier.startsWith('anc_') || identifier.includes('-')
+    const validHash = isValidHash(identifier)
+
+    if (!validHash && !isId) {
+      console.error(chalk.red('\n✗ Invalid input. Must be a 64-character hex SHA-256 string or an Anchor ID.\n'))
       process.exit(3)
     }
 
     if (!options.owner) {
-      console.log(chalk.yellow('\n⚠  --owner <publicKey> is required for direct on-chain status.\n'))
-      console.log(chalk.gray('  This is the Solana public key that was used when anchoring.'))
-      console.log(chalk.gray('  Example:'))
-      console.log(chalk.cyan(`    sipheron status ${hash.slice(0, 16)}... --owner <YourWalletPublicKey>\n`))
+      if (!config.isAuthenticated()) {
+        console.log(chalk.yellow('\n⚠  API key required for status check, OR --owner <publicKey> for direct on-chain lookup.\n'))
+        console.log(chalk.gray('  Login:'))
+        console.log(chalk.cyan(`    sipheron login\n`))
+        console.log(chalk.gray('  Or on-chain zero-API lookup:'))
+        console.log(chalk.cyan(`    sipheron status ${identifier.slice(0, 16)}... --owner <YourWalletPublicKey>\n`))
+        process.exit(1)
+      }
+
+      const spinner = createSpinner('Fetching status from API...')
+      if (options.format === 'human') spinner.start()
+
+      try {
+        const sipheron = new SipHeron({ apiKey: config.getApiKey(), network, baseUrl: process.env.SIPHERON_API_URL })
+        const result = await sipheron.getStatus(identifier)
+
+        if (options.format === 'human') spinner.stop()
+
+        if (options.format === 'json') {
+          json.print({ ...result, mode: 'api' })
+          return
+        }
+
+        console.log()
+        human.label('Identifier', identifier)
+        human.label('Hash', result.hash)
+        human.label('Status', chalk.yellow(result.status))
+        human.label('Network', `Solana ${result.network}`)
+        
+        if (result.verificationUrl) {
+          console.log()
+          console.log(chalk.gray('Verify it online:'))
+          console.log(chalk.cyan(result.verificationUrl))
+        }
+        console.log()
+        return
+
+      } catch (error) {
+        if (options.format === 'human') spinner.stop()
+        handleError(error)
+      }
+    }
+
+    // ── Direct on-chain fallback (requires --owner and strict hash) ─────────
+    if (isId) {
+      console.error(chalk.red('\n✗ Direct on-chain lookup requires a raw SHA-256 Hash, not an Anchor ID.\n'))
       process.exit(1)
     }
 
@@ -45,18 +91,17 @@ export const statusCommand = new Command('status')
     try {
       // ── Direct on-chain read — zero SipHeron API dependency ─────────────────
       const result = await verifyOnChain({
-        hash: hash.toLowerCase(),
+        hash: identifier.toLowerCase(),
         network,
         ownerPublicKey: ownerPk,
         ...(options.programId && { programId: options.programId }),
       })
 
       // Derive PDA for display
-      const pda = deriveAnchorAddress(hash.toLowerCase(), ownerPk, (options.programId ? new PublicKey(options.programId) : network) as any)
+      const pda = deriveAnchorAddress(identifier.toLowerCase(), ownerPk, (options.programId ? new PublicKey(options.programId) : network) as any)
 
       // Enrich with block timestamp via public RPC
       let blockTime: string | undefined
-      let slot = 0
       if (result.timestamp) {
         blockTime = new Date(result.timestamp * 1000).toISOString()
       }
@@ -65,7 +110,7 @@ export const statusCommand = new Command('status')
 
       if (options.format === 'json') {
         json.print({
-          hash,
+          hash: identifier,
           pda: pda.toBase58(),
           authentic: result.authentic,
           isRevoked: result.isRevoked || false,
@@ -79,7 +124,7 @@ export const statusCommand = new Command('status')
       }
 
       console.log()
-      human.label('Hash',      hash)
+      human.label('Hash',      identifier)
       human.label('PDA',       pda.toBase58())
       human.label('Owner',     result.owner || options.owner)
       human.label('Network',   `Solana ${network}`)
