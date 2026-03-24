@@ -13,11 +13,11 @@ const store = new conf_1.default({
     }
 });
 exports.config = {
-    getApiKey: () => store.get('apiKey'),
+    getApiKey: () => process.env.SIPHERON_API_KEY || store.get('apiKey'),
     setApiKey: (key) => store.set('apiKey', key),
     clearApiKey: () => store.delete('apiKey'),
     getNetwork: () => store.get('network'),
     setNetwork: (n) => store.set('network', n),
     getFormat: () => store.get('defaultFormat'),
-    isAuthenticated: () => !!store.get('apiKey')
+    isAuthenticated: () => !!(process.env.SIPHERON_API_KEY || store.get('apiKey'))
 };

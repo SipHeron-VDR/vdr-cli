@@ -20,7 +20,9 @@ Crucially, **your files never leave your machine**. The CLI securely hashes docu
 - **Direct On-Chain Anchoring:** Optionally bypass all SaaS APIs and commit hashes directly to the Solana blockchain using your own wallet.
 - **Massive Concurrency:** Anchor up to 500 documents per batch concurrently using the optimized background processor.
 - **Version Chains:** Graphically traverse the linked lineage of document amendments over time directly in the terminal.
+- **Integrity Reports:** Generate professional, audit-ready PDF evidence packages dynamically from terminal output.
 - **Algorithmic Flexibility:** Out-of-the-box support for `SHA-256`, `SHA-512`, `MD5`, and `BLAKE3`.
+- **Programmatic CLI Usage:** Securely implement any CLI command as a strictly typed asynchronous function directly inside your Node.js operations.
 
 ## 📦 Installation
 
@@ -75,7 +77,31 @@ sipheron chain anc_9xN4kLpM
 # v1  anc_3xK9mPqR  2026-01-14  Confirmed ✓  (original)
 # v2  anc_7yL3nRsT  2026-02-01  Confirmed ✓  Updated payment terms
 # v3  anc_9xN4kLpM  2026-03-10  Confirmed ✓  Renewal clause added
-#     (current)
+#   (current)
+```
+
+### 📄 Integrity Reporting
+Generate a complete, professionally formatted PDF document proving the chain of custody for a batch of documents:
+```bash
+sipheron report --format pdf --output Q1-2026-integrity-report.pdf
+# or filter structurally:
+sipheron report --from 2026-01-01 --to 2026-03-31 --tag type:contract --format pdf
+```
+
+### 💻 Programmatic CLI Usage
+DevOps engineers can implement the VDR CLI's behavior natively inside a Node.js script (bypassing the shell processing overhead entirely). All commands are exported as typed async functions:
+
+```typescript
+// Use in Node.js scripts without spawning child processes
+const { anchorFile, verifyFile } = require('@sipheron/vdr-cli/programmatic')
+
+// In a deployment orchestration script:
+const anchor = await anchorFile('./dist/app-v2.1.0.zip', {
+  name: `Release v2.1.0`,
+  tags: { version: '2.1.0', environment: 'production' }
+})
+
+console.log('Build anchored:', anchor.verificationUrl)
 ```
 
 ### Changing Environments
