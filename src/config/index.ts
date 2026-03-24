@@ -15,11 +15,11 @@ const store = new Conf<SipHeronConfig>({
 })
 
 export const config = {
-  getApiKey: (): string | undefined => store.get('apiKey'),
+  getApiKey: (): string | undefined => process.env.SIPHERON_API_KEY || store.get('apiKey'),
   setApiKey: (key: string): void => store.set('apiKey', key),
   clearApiKey: (): void => store.delete('apiKey'),
   getNetwork: () => store.get('network'),
   setNetwork: (n: 'devnet' | 'mainnet') => store.set('network', n),
   getFormat: () => store.get('defaultFormat'),
-  isAuthenticated: (): boolean => !!store.get('apiKey')
+  isAuthenticated: (): boolean => !!(process.env.SIPHERON_API_KEY || store.get('apiKey'))
 }

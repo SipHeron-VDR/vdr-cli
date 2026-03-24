@@ -11,13 +11,14 @@ import { logoutCommand } from './commands/logout'
 import { anchorBatchCommand } from './commands/anchorBatch'
 import { whoamiCommand } from './commands/whoami'
 import { chainCommand } from './commands/chain'
+import { reportCommand } from './commands/report'
 
 const program = new Command()
 
 program
   .name('sipheron')
   .description('Anchor and verify documents on Solana. Tamper-proof. Forever.')
-  .version('0.1.0')
+  .version('0.1.13')
 
 program.addCommand(anchorCommand)
 program.addCommand(anchorBatchCommand)
@@ -29,5 +30,6 @@ program.addCommand(loginCommand)
 program.addCommand(logoutCommand)
 program.addCommand(whoamiCommand)
 program.addCommand(chainCommand)
+program.addCommand(reportCommand)
 
 program.parse(process.argv)

@@ -12,11 +12,12 @@ const logout_1 = require("./commands/logout");
 const anchorBatch_1 = require("./commands/anchorBatch");
 const whoami_1 = require("./commands/whoami");
 const chain_1 = require("./commands/chain");
+const report_1 = require("./commands/report");
 const program = new commander_1.Command();
 program
     .name('sipheron')
     .description('Anchor and verify documents on Solana. Tamper-proof. Forever.')
-    .version('0.1.0');
+    .version('0.1.13');
 program.addCommand(anchor_1.anchorCommand);
 program.addCommand(anchorBatch_1.anchorBatchCommand);
 program.addCommand(verify_1.verifyCommand);
@@ -27,4 +28,5 @@ program.addCommand(login_1.loginCommand);
 program.addCommand(logout_1.logoutCommand);
 program.addCommand(whoami_1.whoamiCommand);
 program.addCommand(chain_1.chainCommand);
+program.addCommand(report_1.reportCommand);
 program.parse(process.argv);
